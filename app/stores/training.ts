@@ -1,0 +1,165 @@
+import type PocketBase from 'pocketbase'
+import { defineStore } from 'pinia'
+
+export interface TrainingDay {
+  id: string
+  name: string
+  sort_order: number
+}
+
+export interface Exercise {
+  id: string
+  training_day: string
+  name: string
+  sort_order: number
+  sets_count: number
+}
+
+export interface SessionRecord {
+  id: string
+  training_day: string
+  date: string
+  comment: string
+  difficulty: number | null
+  created: string
+}
+
+export interface ExerciseEntry {
+  id: string
+  session: string
+  exercise: string
+  working_weight: number | null
+  target_reps: number | null
+  reps: number[]
+  pain_level: number | null
+  note: string
+}
+
+function pb(): PocketBase {
+  const nuxtApp = useNuxtApp()
+  return nuxtApp.$pb as PocketBase
+}
+
+export const useTrainingStore = defineStore('training', {
+  state: () => ({
+    days: [] as TrainingDay[],
+    exercisesByDay: {} as Record<string, Exercise[]>,
+    sessionsByDay: {} as Record<string, SessionRecord[]>,
+    entriesBySession: {} as Record<string, ExerciseEntry[]>,
+    loading: false,
+    error: '' as string
+  }),
+
+  getters: {
+    dayById: (state) => (id: string) => state.days.find((d) => d.id === id)
+  },
+
+  actions: {
+    async fetchDays() {
+      this.loading = true
+      this.error = ''
+      try {
+        const list = await pb().collection('training_days').getFullList<TrainingDay>({
+          sort: 'sort_order,name'
+        })
+        this.days = list
+      } catch (e: any) {
+        this.error = e?.message || 'Не удалось загрузить тренировочные дни'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async createDay(name: string) {
+      const sortOrder = this.days.length
+        ? Math.max(...this.days.map((d) => d.sort_order || 0)) + 1
+        : 1
+      const record = await pb().collection('training_days').create<TrainingDay>({
+        name,
+        sort_order: sortOrder
+      })
+      this.days.push(record)
+      return record
+    },
+
+    async fetchExercises(dayId: string) {
+      const list = await pb().collection('exercises').getFullList<Exercise>({
+        filter: `training_day = "${dayId}"`,
+        sort: 'sort_order,name'
+      })
+      this.exercisesByDay[dayId] = list
+      return list
+    },
+
+    async createExercise(dayId: string, name: string, setsCount = 4) {
+      const existing = this.exercisesByDay[dayId] || []
+      const sortOrder = existing.length
+        ? Math.max(...existing.map((e) => e.sort_order || 0)) + 1
+        : 1
+      const record = await pb().collection('exercises').create<Exercise>({
+        training_day: dayId,
+        name,
+        sort_order: sortOrder,
+        sets_count: setsCount
+      })
+      this.exercisesByDay[dayId] = [...existing, record]
+      return record
+    },
+
+    async fetchSessions(dayId: string) {
+      const list = await pb().collection('sessions').getFullList<SessionRecord>({
+        filter: `training_day = "${dayId}"`,
+        sort: '-date'
+      })
+      this.sessionsByDay[dayId] = list
+      return list
+    },
+
+    async fetchEntriesForSessions(sessionIds: string[]) {
+      if (!sessionIds.length) return
+      const filter = sessionIds.map((id) => `session = "${id}"`).join(' || ')
+      const list = await pb().collection('exercise_entries').getFullList<ExerciseEntry>({
+        filter,
+        sort: 'created'
+      })
+      const grouped: Record<string, ExerciseEntry[]> = {}
+      for (const entry of list) {
+        if (!grouped[entry.session]) grouped[entry.session] = []
+        grouped[entry.session].push(entry)
+      }
+      Object.assign(this.entriesBySession, grouped)
+    },
+
+    async createSession(dayId: string, date: string, comment: string, difficulty: number | null = null) {
+      const record = await pb().collection('sessions').create<SessionRecord>({
+        training_day: dayId,
+        date,
+        comment,
+        difficulty
+      })
+      this.sessionsByDay[dayId] = [record, ...(this.sessionsByDay[dayId] || [])]
+      return record
+    },
+
+    async createEntry(payload: {
+      session: string
+      exercise: string
+      working_weight: number | null
+      target_reps: number | null
+      reps: number[]
+      pain_level: number | null
+      note: string
+    }) {
+      const record = await pb().collection('exercise_entries').create<ExerciseEntry>(payload)
+      if (!this.entriesBySession[payload.session]) this.entriesBySession[payload.session] = []
+      this.entriesBySession[payload.session].push(record)
+      return record
+    },
+
+    async deleteSession(dayId: string, sessionId: string) {
+      await pb().collection('sessions').delete(sessionId)
+      this.sessionsByDay[dayId] = (this.sessionsByDay[dayId] || []).filter((s) => s.id !== sessionId)
+      delete this.entriesBySession[sessionId]
+    }
+  }
+})
