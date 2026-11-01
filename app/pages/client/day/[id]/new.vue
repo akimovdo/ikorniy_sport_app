@@ -6,10 +6,10 @@
     <v-card class="pa-4 mb-4" variant="tonal">
       <v-text-field v-model="date" type="date" label="Дата" density="comfortable" />
       <div class="text-caption text-medium-emphasis mb-1">
-        Сложность тренировки (0 — легко, 10 — максимально тяжело)
+        RPE — воспринимаемая нагрузка (0 — очень легко, 10 — максимально тяжело)
       </div>
       <v-slider
-        v-model="difficulty"
+        v-model="rpe"
         :min="0"
         :max="10"
         :step="1"
@@ -135,7 +135,7 @@ const store = useTrainingStore()
 const day = computed(() => store.dayById(dayId.value))
 const date = ref(new Date().toISOString().slice(0, 10))
 const comment = ref('')
-const difficulty = ref(0)
+const rpe = ref(0)
 const saving = ref(false)
 const error = ref('')
 
@@ -197,7 +197,7 @@ async function save() {
   error.value = ''
   saving.value = true
   try {
-    const session = await store.createSession(dayId.value, date.value, comment.value.trim(), difficulty.value)
+    const session = await store.createSession(dayId.value, date.value, comment.value.trim(), rpe.value)
     for (const entry of entries.value) {
       await store.createEntry({
         session: session.id,

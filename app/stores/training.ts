@@ -20,7 +20,7 @@ export interface SessionRecord {
   training_day: string
   date: string
   comment: string
-  difficulty: number | null
+  rpe: number | null
   user: string
   created: string
 }
@@ -151,13 +151,13 @@ export const useTrainingStore = defineStore('training', {
       return map
     },
 
-    async createSession(dayId: string, date: string, comment: string, difficulty: number | null = null) {
+    async createSession(dayId: string, date: string, comment: string, rpe: number | null = null) {
       const userId = pb().authStore.model?.id
       const record = await pb().collection('sessions').create<SessionRecord>({
         training_day: dayId,
         date,
         comment,
-        difficulty,
+        rpe,
         user: userId
       })
       this.sessionsByDay[dayId] = [record, ...(this.sessionsByDay[dayId] || [])]

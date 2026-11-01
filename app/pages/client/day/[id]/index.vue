@@ -48,13 +48,13 @@
             <span class="font-weight-medium">{{ formatDate(session.date) }}</span>
             <div>
               <v-chip
-                v-if="session.difficulty"
+                v-if="session.rpe"
                 size="x-small"
                 color="secondary"
                 variant="flat"
                 class="mr-2"
               >
-                сложность {{ session.difficulty }}
+                RPE {{ session.rpe }}
               </v-chip>
               <v-chip
                 v-if="maxPain(session.id) >= 3"
