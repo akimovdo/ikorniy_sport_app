@@ -16,7 +16,7 @@ RUN npm ci
 
 COPY . .
 
-ARG NUXT_PUBLIC_POCKETBASE_URL=https://lustily-eloquent-piglet.cloudpub.ru
+ARG NUXT_PUBLIC_POCKETBASE_URL=https://sport-bd.cloudpub.ru
 ENV NUXT_PUBLIC_POCKETBASE_URL=$NUXT_PUBLIC_POCKETBASE_URL
 
 RUN npm run build

@@ -17,7 +17,7 @@ services:
       pocketbase:
         condition: service_healthy
     environment:
-      NUXT_PUBLIC_POCKETBASE_URL: ${NUXT_PUBLIC_POCKETBASE_URL:-https://lustily-eloquent-piglet.cloudpub.ru}
+      NUXT_PUBLIC_POCKETBASE_URL: ${NUXT_PUBLIC_POCKETBASE_URL:-https://sport-bd.cloudpub.ru}
     ports:
       - "3001:3000"
     healthcheck:
