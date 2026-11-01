@@ -63,6 +63,11 @@
         </v-col>
       </v-row>
 
+      <div v-if="entryOneRM(entry) !== null" class="text-caption mt-1">
+        <v-icon icon="mdi-trending-up" size="x-small" color="primary" />
+        Расчётный 1ПМ ≈ {{ entryOneRM(entry) }} кг
+      </div>
+
       <div class="text-caption text-medium-emphasis mb-1 mt-2">
         Уровень боли (0 — нет, 5 — нужна таблетка)
       </div>
@@ -81,6 +86,13 @@
         label="Заметка по упражнению (необязательно)"
         density="comfortable"
       />
+    </v-card>
+
+    <v-card v-if="totalTonnage > 0" class="pa-4 mb-4" variant="tonal" color="surface">
+      <div class="d-flex align-center justify-space-between">
+        <span class="text-body-2 text-medium-emphasis">Суммарный тоннаж</span>
+        <span class="text-subtitle-1 font-weight-bold">{{ totalTonnage.toLocaleString('ru-RU') }} кг</span>
+      </div>
     </v-card>
 
     <v-card class="pa-4 mb-6" variant="tonal">
@@ -139,6 +151,28 @@ interface EntryForm {
 }
 
 const entries = ref<EntryForm[]>([])
+
+function estimateOneRM(weight: number, reps: number): number | null {
+  if (!weight || !reps || reps <= 0) return null
+  // Формула Эпли: 1ПМ = вес × (1 + повторы / 30)
+  return Math.round(weight * (1 + reps / 30))
+}
+
+function entryOneRM(entry: EntryForm): number | null {
+  const validReps = entry.reps.filter((r): r is number => r !== null && r > 0)
+  if (!entry.weight || !validReps.length) return null
+  return estimateOneRM(entry.weight, Math.max(...validReps))
+}
+
+const totalTonnage = computed(() => {
+  let sum = 0
+  for (const e of entries.value) {
+    const w = e.weight || 0
+    const reps = e.reps.filter((r): r is number => r !== null && r > 0)
+    sum += w * reps.reduce((a, b) => a + b, 0)
+  }
+  return sum
+})
 
 async function buildEntries() {
   const exercises = store.exercisesByDay[dayId.value] || []
