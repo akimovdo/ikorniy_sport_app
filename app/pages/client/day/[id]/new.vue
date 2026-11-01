@@ -105,6 +105,8 @@
     >
       Сохранить тренировку
     </v-btn>
+
+    <RestTimer />
   </div>
 </template>
 
