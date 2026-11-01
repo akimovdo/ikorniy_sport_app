@@ -21,6 +21,7 @@ export interface SessionRecord {
   date: string
   comment: string
   difficulty: number | null
+  user: string
   created: string
 }
 
@@ -28,6 +29,7 @@ export interface ExerciseEntry {
   id: string
   session: string
   exercise: string
+  user: string
   working_weight: number | null
   target_reps: number | null
   reps: number[]
@@ -131,11 +133,13 @@ export const useTrainingStore = defineStore('training', {
     },
 
     async createSession(dayId: string, date: string, comment: string, difficulty: number | null = null) {
+      const userId = pb().authStore.model?.id
       const record = await pb().collection('sessions').create<SessionRecord>({
         training_day: dayId,
         date,
         comment,
-        difficulty
+        difficulty,
+        user: userId
       })
       this.sessionsByDay[dayId] = [record, ...(this.sessionsByDay[dayId] || [])]
       return record
@@ -150,7 +154,11 @@ export const useTrainingStore = defineStore('training', {
       pain_level: number | null
       note: string
     }) {
-      const record = await pb().collection('exercise_entries').create<ExerciseEntry>(payload)
+      const userId = pb().authStore.model?.id
+      const record = await pb().collection('exercise_entries').create<ExerciseEntry>({
+        ...payload,
+        user: userId
+      })
       if (!this.entriesBySession[payload.session]) this.entriesBySession[payload.session] = []
       this.entriesBySession[payload.session].push(record)
       return record
