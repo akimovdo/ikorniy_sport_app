@@ -108,6 +108,11 @@ export const useTrainingStore = defineStore('training', {
       return record
     },
 
+    async deleteExercise(dayId: string, exerciseId: string) {
+      await pb().collection('exercises').delete(exerciseId)
+      this.exercisesByDay[dayId] = (this.exercisesByDay[dayId] || []).filter((e) => e.id !== exerciseId)
+    },
+
     async fetchSessions(dayId: string) {
       const list = await pb().collection('sessions').getFullList<SessionRecord>({
         filter: `training_day = "${dayId}"`,
@@ -130,6 +135,20 @@ export const useTrainingStore = defineStore('training', {
         grouped[entry.session].push(entry)
       }
       Object.assign(this.entriesBySession, grouped)
+    },
+
+    // Возвращает карту exercise_id -> последняя запись (из самой свежей сессии дня).
+    async fetchLastEntries(dayId: string): Promise<Record<string, ExerciseEntry>> {
+      const sessions = await this.fetchSessions(dayId)
+      if (!sessions.length) return {}
+      const lastSession = sessions[0]
+      await this.fetchEntriesForSessions([lastSession.id])
+      const entries = this.entriesBySession[lastSession.id] || []
+      const map: Record<string, ExerciseEntry> = {}
+      for (const e of entries) {
+        map[e.exercise] = e
+      }
+      return map
     },
 
     async createSession(dayId: string, date: string, comment: string, difficulty: number | null = null) {
@@ -168,6 +187,13 @@ export const useTrainingStore = defineStore('training', {
       await pb().collection('sessions').delete(sessionId)
       this.sessionsByDay[dayId] = (this.sessionsByDay[dayId] || []).filter((s) => s.id !== sessionId)
       delete this.entriesBySession[sessionId]
+    },
+
+    async deleteDay(dayId: string) {
+      await pb().collection('training_days').delete(dayId)
+      this.days = this.days.filter((d) => d.id !== dayId)
+      delete this.exercisesByDay[dayId]
+      delete this.sessionsByDay[dayId]
     }
   }
 })
