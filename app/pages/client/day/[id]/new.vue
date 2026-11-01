@@ -25,8 +25,11 @@
       class="pa-4 mb-4"
       elevation="2"
     >
-      <div class="text-subtitle-2 font-weight-medium mb-3">
+      <div class="text-subtitle-2 font-weight-medium mb-1">
         {{ idx + 1 }}. {{ entry.name }}
+      </div>
+      <div v-if="entry.last" class="text-caption text-medium-emphasis mb-2">
+        Прошлый раз: {{ entry.last.working_weight ?? '—' }} кг × {{ (entry.last.reps || []).join(' · ') }}
       </div>
 
       <v-row>
@@ -130,21 +133,28 @@ interface EntryForm {
   reps: (number | null)[]
   pain: number
   note: string
+  last: { working_weight: number | null; reps: number[] } | null
 }
 
 const entries = ref<EntryForm[]>([])
 
-function buildEntries() {
+async function buildEntries() {
   const exercises = store.exercisesByDay[dayId.value] || []
-  entries.value = exercises.map((ex) => ({
-    exerciseId: ex.id,
-    name: ex.name,
-    weight: null,
-    targetReps: null,
-    reps: Array.from({ length: ex.sets_count || 4 }, () => null),
-    pain: 0,
-    note: ''
-  }))
+  const lastEntries = await store.fetchLastEntries(dayId.value)
+  entries.value = exercises.map((ex) => {
+    const last = lastEntries[ex.id] || null
+    const setsCount = ex.sets_count || 4
+    return {
+      exerciseId: ex.id,
+      name: ex.name,
+      weight: last?.working_weight ?? null,
+      targetReps: last?.target_reps ?? null,
+      reps: Array.from({ length: setsCount }, (_, i) => last?.reps?.[i] ?? null),
+      pain: 0,
+      note: '',
+      last: last ? { working_weight: last.working_weight, reps: last.reps } : null
+    }
+  })
 }
 
 async function save() {
@@ -174,6 +184,6 @@ async function save() {
 onMounted(async () => {
   if (!store.days.length) await store.fetchDays()
   if (!store.exercisesByDay[dayId.value]) await store.fetchExercises(dayId.value)
-  buildEntries()
+  await buildEntries()
 })
 </script>
