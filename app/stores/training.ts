@@ -13,6 +13,8 @@ export interface Exercise {
   name: string
   sort_order: number
   sets_count: number
+  muscle_group: string
+  default_rest: number | null
 }
 
 export interface SessionRecord {
@@ -93,7 +95,7 @@ export const useTrainingStore = defineStore('training', {
       return list
     },
 
-    async createExercise(dayId: string, name: string, setsCount = 4) {
+    async createExercise(dayId: string, name: string, setsCount = 4, muscleGroup = '', defaultRest = 90) {
       const existing = this.exercisesByDay[dayId] || []
       const sortOrder = existing.length
         ? Math.max(...existing.map((e) => e.sort_order || 0)) + 1
@@ -102,7 +104,9 @@ export const useTrainingStore = defineStore('training', {
         training_day: dayId,
         name,
         sort_order: sortOrder,
-        sets_count: setsCount
+        sets_count: setsCount,
+      muscle_group: muscleGroup,
+      default_rest: defaultRest
       })
       this.exercisesByDay[dayId] = [...existing, record]
       return record
