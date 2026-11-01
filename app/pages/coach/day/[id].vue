@@ -21,7 +21,12 @@
             <v-icon icon="mdi-dumbbell" color="secondary" size="small" class="mt-1" />
           </template>
           <v-list-item-title>{{ ex.name }}</v-list-item-title>
-          <v-list-item-subtitle>{{ ex.sets_count || 4 }} подход(ов)</v-list-item-subtitle>
+          <v-list-item-subtitle>
+            <span v-if="ex.muscle_group">{{ ex.muscle_group }}</span>
+            <span v-if="ex.muscle_group"> · </span>
+            {{ ex.sets_count || 4 }} подход(ов)
+            <span v-if="ex.default_rest"> · отдых {{ ex.default_rest }}с</span>
+          </v-list-item-subtitle>
           <template #append>
             <v-btn
               icon="mdi-delete-outline"
@@ -41,7 +46,19 @@
     <v-dialog v-model="dialog" max-width="420">
       <v-card class="pa-4">
         <v-card-title class="px-0">Новое упражнение</v-card-title>
-        <v-text-field v-model="newExerciseName" label="Название упражнения" autofocus />
+        <v-select
+          v-model="newMuscleGroup"
+          :items="MUSCLE_GROUPS"
+          label="Группа мышц"
+          clearable
+          @update:model-value="newExerciseName = ''"
+        />
+        <v-combobox
+          v-model="newExerciseName"
+          :items="librarySuggestions"
+          label="Упражнение (из библиотеки или своё)"
+          autofocus
+        />
         <v-text-field
           v-model.number="newExerciseSets"
           type="number"
@@ -49,13 +66,20 @@
           min="1"
           max="10"
         />
+        <v-text-field
+          v-model.number="newDefaultRest"
+          type="number"
+          label="Отдых между подходами (сек)"
+          min="0"
+          max="600"
+        />
         <v-card-actions class="px-0">
           <v-spacer />
           <v-btn variant="text" @click="dialog = false">Отмена</v-btn>
           <v-btn
             color="primary"
             variant="flat"
-            :disabled="!newExerciseName.trim()"
+            :disabled="!newExerciseName"
             @click="submitExercise"
           >
             Добавить
@@ -68,6 +92,7 @@
 
 <script setup lang="ts">
 import { useTrainingStore } from '~/stores/training'
+import { EXERCISE_LIBRARY, MUSCLE_GROUPS } from '~/data/exerciseLibrary'
 
 definePageMeta({ title: 'Упражнения — тренер' })
 
@@ -78,9 +103,18 @@ const store = useTrainingStore()
 const dialog = ref(false)
 const newExerciseName = ref('')
 const newExerciseSets = ref(4)
+const newDefaultRest = ref(90)
+const newMuscleGroup = ref('')
 
 const day = computed(() => store.dayById(dayId.value))
 const exercises = computed(() => store.exercisesByDay[dayId.value] || [])
+
+const librarySuggestions = computed(() => {
+  const list = newMuscleGroup.value
+    ? EXERCISE_LIBRARY.filter((e) => e.muscleGroup === newMuscleGroup.value)
+    : EXERCISE_LIBRARY
+  return list.map((e) => e.name)
+})
 
 function pluralSuffix(count: number) {
   const mod10 = count % 10
@@ -91,10 +125,19 @@ function pluralSuffix(count: number) {
 }
 
 async function submitExercise() {
-  if (!newExerciseName.value.trim()) return
-  await store.createExercise(dayId.value, newExerciseName.value.trim(), newExerciseSets.value || 4)
+  const name = (newExerciseName.value || '').trim()
+  if (!name) return
+  await store.createExercise(
+    dayId.value,
+    name,
+    newExerciseSets.value || 4,
+    newMuscleGroup.value,
+    newDefaultRest.value || 90
+  )
   newExerciseName.value = ''
   newExerciseSets.value = 4
+  newDefaultRest.value = 90
+  newMuscleGroup.value = ''
   dialog.value = false
 }
 
