@@ -1,0 +1,16 @@
+node_modules
+.nuxt
+.output
+.data
+.nitro
+.cache
+dist
+.git
+.github
+deploy
+pb/pb_data
+pb/*.log
+*.log
+.env
+.env.*
+!.env.example

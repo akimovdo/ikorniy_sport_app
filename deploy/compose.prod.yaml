@@ -1,0 +1,33 @@
+services:
+  pocketbase:
+    image: ghcr.io/akimovdo/ikorniy_sport_app-pocketbase:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL}
+      POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD}
+    ports:
+      - "8093:8090"
+    volumes:
+      - pocketbase_data:/pb/pb_data
+
+  web:
+    image: ghcr.io/akimovdo/ikorniy_sport_app-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    environment:
+      NUXT_PUBLIC_POCKETBASE_URL: ${NUXT_PUBLIC_POCKETBASE_URL:-https://lustily-eloquent-piglet.cloudpub.ru}
+    ports:
+      - "3001:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pocketbase_data:
+    name: ikorniy_sport_app_pb_data
+    external: true
