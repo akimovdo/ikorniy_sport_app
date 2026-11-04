@@ -63,9 +63,9 @@
         </v-col>
       </v-row>
 
-      <div v-if="entryOneRM(entry) !== null" class="text-caption mt-1">
+      <div v-if="formOneRM(entry) !== null" class="text-caption mt-1">
         <v-icon icon="mdi-trending-up" size="x-small" color="primary" />
-        Расчётный 1ПМ ≈ {{ entryOneRM(entry) }} кг
+        Расчётный 1ПМ ≈ {{ formOneRM(entry) }} кг
       </div>
 
       <div class="text-caption text-medium-emphasis mb-1 mt-2">
@@ -124,6 +124,7 @@
 
 <script setup lang="ts">
 import { useTrainingStore } from '~/stores/training'
+import { entryOneRM } from '~/utils/strength'
 
 definePageMeta({ title: 'Отметить тренировку' })
 
@@ -152,16 +153,8 @@ interface EntryForm {
 
 const entries = ref<EntryForm[]>([])
 
-function estimateOneRM(weight: number, reps: number): number | null {
-  if (!weight || !reps || reps <= 0) return null
-  // Формула Эпли: 1ПМ = вес × (1 + повторы / 30)
-  return Math.round(weight * (1 + reps / 30))
-}
-
-function entryOneRM(entry: EntryForm): number | null {
-  const validReps = entry.reps.filter((r): r is number => r !== null && r > 0)
-  if (!entry.weight || !validReps.length) return null
-  return estimateOneRM(entry.weight, Math.max(...validReps))
+function formOneRM(entry: EntryForm): number | null {
+  return entryOneRM({ working_weight: entry.weight, reps: entry.reps as number[] })
 }
 
 const totalTonnage = computed(() => {

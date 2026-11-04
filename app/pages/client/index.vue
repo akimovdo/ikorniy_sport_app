@@ -1,9 +1,32 @@
 <template>
   <div>
-    <div class="mb-4">
-      <h1 class="text-h6 font-weight-bold">Мои тренировки</h1>
-      <div class="text-caption text-medium-emphasis">Режим клиента — отмечайте выполнение</div>
+    <div class="d-flex align-center justify-space-between mb-4">
+      <div>
+        <h1 class="text-h6 font-weight-bold">Мои тренировки</h1>
+        <div class="text-caption text-medium-emphasis">Режим клиента — отмечайте выполнение</div>
+      </div>
+      <v-btn
+        icon="mdi-chart-line"
+        size="small"
+        variant="tonal"
+        color="primary"
+        to="/client/progress"
+        aria-label="Прогресс"
+      />
     </div>
+
+    <v-card :to="'/client/progress'" class="pa-4 mb-4" elevation="2" variant="tonal">
+      <div class="d-flex align-center justify-space-between">
+        <div class="d-flex align-center ga-3">
+          <v-icon icon="mdi-chart-line" color="primary" />
+          <div>
+            <div class="text-subtitle-2 font-weight-medium">Прогресс</div>
+            <div class="text-caption text-medium-emphasis">Объём, 1ПМ и личные рекорды</div>
+          </div>
+        </div>
+        <v-icon icon="mdi-chevron-right" color="medium-emphasis" />
+      </div>
+    </v-card>
 
     <v-alert v-if="store.error" type="error" variant="tonal" class="mb-4">
       {{ store.error }}
