@@ -37,8 +37,18 @@
           :width="barW()"
           :height="Math.max(1, PAD.top + innerH - y(point.value))"
           rx="3"
-          :fill="point.isPr ? prColor : color"
-          :fill-opacity="point.isPr ? 1 : 0.85"
+          :fill="color"
+          :fill-opacity="point.isPr ? 1 : 0.75"
+        />
+        <rect
+          v-for="(point, index) in prPoints"
+          :key="`cap-${index}`"
+          :x="barX(points.indexOf(point))"
+          :y="y(point.value)"
+          :width="barW()"
+          height="4"
+          rx="2"
+          :fill="prColor"
         />
       </g>
 
