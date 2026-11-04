@@ -153,7 +153,7 @@ const exerciseOptions = computed(() => {
     .filter((ex) => used.has(ex.id))
     .map((ex) => ({ title: ex.name, value: ex.id }))
     .sort((a, b) => a.title.localeCompare(b.title, 'ru'))
-  return [{ title: 'Все упражнения (суммарный объём)', value: ALL }, ...list]
+  return [{ title: 'Все упражнения (итого)', value: ALL }, ...list]
 })
 
 const isSingleExercise = computed(() => selectedExercise.value !== ALL)
