@@ -26,12 +26,19 @@ export function entryTonnage(entry: EntryLike): number {
   return weight * reps.reduce((sum, r) => sum + r, 0)
 }
 
+/** Локальная дата в формате YYYY-MM-DD (без пересчёта в UTC). */
+export function localDateString(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
 /** Начало недели (понедельник) для даты в формате YYYY-MM-DD. */
 export function weekStart(dateStr: string): string {
   const date = new Date(`${dateStr.slice(0, 10)}T00:00:00`)
   const day = (date.getDay() + 6) % 7
   date.setDate(date.getDate() - day)
-  return date.toISOString().slice(0, 10)
+  return localDateString(date)
 }
 
 /** Понятная подпись недели: 03.11 */

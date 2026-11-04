@@ -108,7 +108,7 @@
 <script setup lang="ts">
 import type PocketBase from 'pocketbase'
 import { useAuthStore } from '~/stores/auth'
-import { entryOneRM, entryTonnage, weekStart, weekLabel } from '~/utils/strength'
+import { entryOneRM, entryTonnage, localDateString, weekStart, weekLabel } from '~/utils/strength'
 
 definePageMeta({ title: 'Прогресс' })
 
@@ -225,7 +225,7 @@ const weekKeys = computed(() => {
   const cursor = new Date(`${first}T00:00:00`)
   const end = new Date(`${last}T00:00:00`)
   while (cursor <= end) {
-    keys.push(cursor.toISOString().slice(0, 10))
+    keys.push(localDateString(cursor))
     cursor.setDate(cursor.getDate() + 7)
   }
   return keys
