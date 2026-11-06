@@ -59,6 +59,7 @@
             :unit="activeMetric.unit"
             :label="activeMetric.title"
             :format-value="formatMetric"
+            scaled
           />
           <div v-else class="text-body-2 text-medium-emphasis pa-2">
             Для графика нужно минимум два измерения с заполненным полем

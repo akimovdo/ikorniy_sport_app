@@ -105,6 +105,7 @@ const props = withDefaults(
     unit?: string
     label?: string
     formatValue?: (value: number) => string
+    scaled?: boolean
   }>(),
   {
     type: 'bar',
@@ -112,7 +113,8 @@ const props = withDefaults(
     prColor: '#d9364a',
     unit: 'кг',
     label: '',
-    formatValue: undefined
+    formatValue: undefined,
+    scaled: false
   }
 )
 
@@ -123,13 +125,27 @@ const innerW = W - PAD.left - PAD.right
 const innerH = H - PAD.top - PAD.bottom
 
 const maxValue = computed(() => Math.max(1, ...props.points.map((p) => p.value)))
-const niceMax = computed(() => {
-  const raw = maxValue.value
+
+// Масштаб по диапазону (для измерений: вес 82–84, а не 0–100).
+// Для баров всегда считаем от нуля — иначе высота столбца теряет смысл.
+const useRange = computed(() => props.scaled && props.type === 'line' && props.points.length >= 2)
+
+const range = computed(() => {
+  if (!useRange.value) return { lo: 0, hi: niceMaxFrom(maxValue.value) }
+  const values = props.points.map((p) => p.value)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const pad = (max - min) * 0.2 || Math.max(1, max * 0.02)
+  return { lo: Math.max(0, min - pad), hi: max + pad }
+})
+
+function niceMaxFrom(raw: number) {
   const step = Math.pow(10, Math.floor(Math.log10(raw)))
   const scaled = raw / step
   const nice = scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10
   return nice * step
-})
+}
+const niceMax = computed(() => range.value.hi)
 
 function valueText(value: number) {
   if (props.formatValue) return props.formatValue(value)
@@ -156,7 +172,9 @@ function barW() {
 }
 
 function y(value: number) {
-  return PAD.top + innerH - (value / niceMax.value) * innerH
+  const lo = range.value.lo
+  const span = niceMax.value - lo || 1
+  return PAD.top + innerH - ((value - lo) / span) * innerH
 }
 
 const linePath = computed(() => {
@@ -168,7 +186,11 @@ const areaPath = computed(() => {
   return `${linePath.value} L${x(props.points.length - 1)},${PAD.top + innerH} L${x(0)},${PAD.top + innerH} Z`
 })
 
-const ticks = computed(() => [0, 0.5, 1].map((part) => Math.round(niceMax.value * part)))
+const ticks = computed(() => {
+  const lo = range.value.lo
+  const hi = niceMax.value
+  return [0, 0.5, 1].map((part) => Math.round((lo + (hi - lo) * part) * 10) / 10)
+})
 
 const labelStep = computed(() => Math.max(1, Math.ceil(props.points.length / 6)))
 
