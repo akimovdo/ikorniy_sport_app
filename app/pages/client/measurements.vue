@@ -74,10 +74,10 @@
               <v-list-item-title class="text-body-2">
                 {{ formatDate(row.date) }}
               </v-list-item-title>
-              <v-list-item-subtitle class="text-caption history-line">
+              <div class="text-caption text-medium-emphasis history-line">
                 {{ summary(row) }}
                 <span v-if="row.note"> · {{ row.note }}</span>
-              </v-list-item-subtitle>
+              </div>
               <template #append>
                 <v-btn
                   icon="mdi-delete-outline"
