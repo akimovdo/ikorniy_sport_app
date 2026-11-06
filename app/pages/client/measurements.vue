@@ -74,7 +74,7 @@
               <v-list-item-title class="text-body-2">
                 {{ formatDate(row.date) }}
               </v-list-item-title>
-              <v-list-item-subtitle class="text-caption">
+              <v-list-item-subtitle class="text-caption history-line">
                 {{ summary(row) }}
                 <span v-if="row.note"> · {{ row.note }}</span>
               </v-list-item-subtitle>
@@ -366,3 +366,13 @@ async function remove(row: MeasurementRow) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+/* На 375px подпись замера не должна обрезаться многоточием. */
+.history-line {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.35;
+}
+</style>

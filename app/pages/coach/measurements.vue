@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import type PocketBase from 'pocketbase'
 
-definePageMeta({ title: 'Измерения клиентов — тренер' })
+definePageMeta({ title: 'Измерения клиентов' })
 
 interface ClientRow {
   id: string
