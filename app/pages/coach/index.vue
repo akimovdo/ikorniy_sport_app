@@ -5,12 +5,35 @@
         <h1 class="text-h6 font-weight-bold">Комплексы упражнений</h1>
         <div class="text-caption text-medium-emphasis">Режим тренера — создание тренировок</div>
       </div>
-      <v-btn icon="mdi-plus" size="small" variant="tonal" color="primary" @click="dialog = true" />
+      <div class="d-flex align-center ga-2">
+        <v-btn
+          icon="mdi-human-male-height"
+          size="small"
+          variant="tonal"
+          color="primary"
+          to="/coach/measurements"
+          aria-label="Измерения клиентов"
+        />
+        <v-btn icon="mdi-plus" size="small" variant="tonal" color="primary" @click="dialog = true" />
+      </div>
     </div>
 
     <v-alert v-if="store.error" type="error" variant="tonal" class="mb-4">
       {{ store.error }}
     </v-alert>
+
+    <v-card :to="'/coach/measurements'" class="pa-4 mb-4" variant="tonal">
+      <div class="d-flex align-center justify-space-between">
+        <div class="d-flex align-center ga-3">
+          <v-icon icon="mdi-human-male-height" color="primary" />
+          <div>
+            <div class="text-subtitle-2 font-weight-medium">Измерения клиентов</div>
+            <div class="text-caption text-medium-emphasis">Последние замеры и динамика</div>
+          </div>
+        </div>
+        <v-icon icon="mdi-chevron-right" color="medium-emphasis" />
+      </div>
+    </v-card>
 
     <v-progress-linear v-if="store.loading" indeterminate class="mb-4" />
 

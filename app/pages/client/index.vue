@@ -28,6 +28,19 @@
       </div>
     </v-card>
 
+    <v-card :to="'/client/measurements'" class="pa-4 mb-4" elevation="2" variant="tonal">
+      <div class="d-flex align-center justify-space-between">
+        <div class="d-flex align-center ga-3">
+          <v-icon icon="mdi-human-male-height" color="primary" />
+          <div>
+            <div class="text-subtitle-2 font-weight-medium">Измерения тела</div>
+            <div class="text-caption text-medium-emphasis">Вес, талия, грудь, бёдра и график</div>
+          </div>
+        </div>
+        <v-icon icon="mdi-chevron-right" color="medium-emphasis" />
+      </div>
+    </v-card>
+
     <v-alert v-if="store.error" type="error" variant="tonal" class="mb-4">
       {{ store.error }}
     </v-alert>
