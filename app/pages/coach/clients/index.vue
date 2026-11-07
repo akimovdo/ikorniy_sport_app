@@ -22,7 +22,7 @@
     <v-progress-linear v-if="store.loading" indeterminate class="mb-4" />
 
     <v-row v-if="!store.loading && store.clients.length">
-      <v-col v-for="client in store.clients" :key="client.id" cols="12">
+      <v-col v-for="client in sortedClients" :key="client.id" cols="12">
         <v-card :to="`/coach/clients/${client.id}`" class="pa-4" elevation="2">
           <div class="d-flex align-center justify-space-between ga-3">
             <div class="flex-grow-1" style="min-width: 0">
@@ -71,6 +71,11 @@ function countFor(clientId: string) {
 function unreadFor(clientId: string) {
   return store.unreadByClient[clientId] || 0
 }
+
+// Клиенты с непрочитанными сообщениями — сверху: колокольчик ведёт именно сюда.
+const sortedClients = computed(() =>
+  [...store.clients].sort((a, b) => unreadFor(b.id) - unreadFor(a.id))
+)
 
 async function load() {
   await store.fetchClients()

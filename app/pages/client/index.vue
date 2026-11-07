@@ -57,6 +57,7 @@
                 Открыть и отметить тренировку
               </div>
             </div>
+            <v-badge v-if="unreadForDay(day.id)" :content="unreadForDay(day.id)" color="error" class="mr-2" />
             <v-icon icon="mdi-chevron-right" color="medium-emphasis" />
           </div>
         </v-card>
@@ -89,5 +90,15 @@ const visibleDays = computed(() =>
 onMounted(async () => {
   await store.fetchDays()
   await store.fetchMyProgramDays()
+  await Promise.all(visibleDays.value.map((day) => store.fetchSessions(day.id).catch(() => {})))
+  await store.fetchUnread().catch(() => {})
 })
+
+// Новые сообщения по тренировкам этого дня.
+function unreadForDay(dayId: string) {
+  return (store.sessionsByDay[dayId] || []).reduce(
+    (sum, session) => sum + (store.unreadBySession[session.id] || 0),
+    0
+  )
+}
 </script>

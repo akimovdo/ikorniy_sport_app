@@ -64,15 +64,15 @@
           <ProgressChart :points="tonnagePoints" type="bar" color="#3158c8" />
         </v-card>
 
-        <v-card v-if="weeks.length >= 2 && isSingleExercise" class="pa-4 mb-4" elevation="2">
+        <v-card v-if="weeks.length >= 2" class="pa-4 mb-4" elevation="2">
           <div class="d-flex align-center justify-space-between mb-1">
             <span class="text-subtitle-2 font-weight-medium">Расчётный 1ПМ</span>
-            <v-chip v-if="latestRecord" size="x-small" color="error" variant="flat" prepend-icon="mdi-trophy">
+            <v-chip v-if="isSingleExercise && latestRecord" size="x-small" color="error" variant="flat" prepend-icon="mdi-trophy">
               рекорд {{ formatValue(latestRecord.value) }}
             </v-chip>
           </div>
           <div class="text-caption text-medium-emphasis mb-2">
-            Формула Эпли по лучшему подходу недели, кг
+            {{ isSingleExercise ? 'Формула Эпли по лучшему подходу недели, кг' : 'Лучший расчётный 1ПМ недели по всем упражнениям, кг' }}
           </div>
           <ProgressChart :points="oneRmPoints" type="line" color="#2e7d32" />
         </v-card>

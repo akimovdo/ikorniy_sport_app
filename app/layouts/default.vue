@@ -15,7 +15,7 @@
         v-if="auth.isAuthenticated && unreadTotal > 0"
         :icon="true"
         variant="text"
-        :to="homePath"
+        :to="bellPath"
         :aria-label="`Непрочитанных сообщений: ${unreadTotal}`"
       >
         <v-badge :content="unreadTotal" color="error">
@@ -96,6 +96,9 @@ watch(
 const confirmLogout = ref(false)
 
 const homePath = computed(() => (auth.isCoach ? '/coach' : '/client'))
+// Колокольчик ведёт туда, где можно прочитать новое: у тренера — клиенты с непрочитанным,
+// у клиента — его тренировки.
+const bellPath = computed(() => (auth.isCoach ? '/coach/clients' : '/client'))
 const isRoleRoot = computed(() => route.path === '/coach' || route.path === '/client')
 const showBack = computed(
   () => route.path !== '/' && route.path !== '/login' && !isRoleRoot.value
