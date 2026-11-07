@@ -84,6 +84,15 @@ onMounted(() => {
   if (auth.isAuthenticated) training.fetchUnread().catch(() => {})
 })
 
+// После входа, смены страницы или возврата в приложение счётчик пересчитывается:
+// layout не перемонтируется при навигации, поэтому onMounted здесь недостаточно.
+watch(
+  () => route.fullPath,
+  () => {
+    if (auth.isAuthenticated) training.fetchUnread().catch(() => {})
+  }
+)
+
 const confirmLogout = ref(false)
 
 const homePath = computed(() => (auth.isCoach ? '/coach' : '/client'))
