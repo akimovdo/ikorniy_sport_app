@@ -46,6 +46,14 @@ export interface ClientProgram {
   active?: boolean
 }
 
+export interface SessionComment {
+  id: string
+  session: string
+  author: string
+  text: string
+  created: string
+}
+
 export interface CoachClient {
   id: string
   name: string
@@ -61,6 +69,8 @@ export const useTrainingStore = defineStore('training', {
   state: () => ({
     days: [] as TrainingDay[],
     myProgramDayIds: [] as string[],
+    commentsBySession: {} as Record<string, SessionComment[]>,
+    sessionsByClient: {} as Record<string, SessionRecord[]>,
     clients: [] as CoachClient[],
     programsByClient: {} as Record<string, ClientProgram[]>,
     exercisesByDay: {} as Record<string, Exercise[]>,
@@ -254,6 +264,43 @@ export const useTrainingStore = defineStore('training', {
       })
       this.programsByClient[clientId] = list
       return list
+    },
+
+    // Тренировки конкретного клиента — для карточки у тренера.
+    async fetchClientSessions(clientId: string) {
+      const list = await pb().collection('sessions').getFullList<SessionRecord>({
+        filter: `user = "${clientId}"`,
+        sort: '-date'
+      })
+      this.sessionsByClient[clientId] = list
+      return list
+    },
+
+    async fetchComments(sessionIds: string[]) {
+      if (!sessionIds.length) return this.commentsBySession
+      const filter = sessionIds.map((id) => `session = "${id}"`).join(' || ')
+      const list = await pb().collection('session_comments').getFullList<SessionComment>({
+        filter,
+        sort: 'created'
+      })
+      const grouped: Record<string, SessionComment[]> = {}
+      for (const comment of list) {
+        if (!grouped[comment.session]) grouped[comment.session] = []
+        grouped[comment.session].push(comment)
+      }
+      Object.assign(this.commentsBySession, grouped)
+      return this.commentsBySession
+    },
+
+    async addComment(sessionId: string, text: string) {
+      const author = pb().authStore.model?.id
+      const record = await pb().collection('session_comments').create<SessionComment>({
+        session: sessionId,
+        author,
+        text: text.trim()
+      })
+      this.commentsBySession[sessionId] = [...(this.commentsBySession[sessionId] || []), record]
+      return record
     },
 
     async setClientProgram(clientId: string, dayId: string, assigned: boolean) {

@@ -97,6 +97,39 @@
           <div v-if="session.comment" class="text-caption text-medium-emphasis mt-2">
             Комментарий: {{ session.comment }}
           </div>
+
+          <v-divider class="my-3" />
+          <div class="text-caption text-medium-emphasis mb-2">Обсуждение с тренером</div>
+          <div v-for="comment in commentsFor(session.id)" :key="comment.id" class="mb-2">
+            <div class="text-body-2">{{ comment.text }}</div>
+            <div class="text-caption text-medium-emphasis">
+              {{ commentAuthor(comment) }} · {{ formatDateTime(comment.created) }}
+            </div>
+          </div>
+          <div v-if="!commentsFor(session.id).length" class="text-caption text-medium-emphasis mb-2">
+            Пока нет сообщений. Напишите тренеру — он ответит здесь же.
+          </div>
+          <div class="d-flex ga-2 align-center">
+            <v-text-field
+              v-model="drafts[session.id]"
+              density="compact"
+              placeholder="Написать тренеру"
+              hide-details
+              :disabled="sending === session.id"
+              @keyup.enter="send(session.id)"
+            />
+            <v-btn
+              icon="mdi-send"
+              size="small"
+              variant="tonal"
+              color="primary"
+              :loading="sending === session.id"
+              :disabled="!(drafts[session.id] || '').trim()"
+              aria-label="Отправить сообщение"
+              @click="send(session.id)"
+            />
+          </div>
+
           <v-btn
             size="small"
             variant="text"
@@ -131,6 +164,44 @@ const loading = ref(true)
 const day = computed(() => store.dayById(dayId.value))
 const exercises = computed(() => store.exercisesByDay[dayId.value] || [])
 const sessions = computed(() => store.sessionsByDay[dayId.value] || [])
+
+const drafts = reactive<Record<string, string>>({})
+const sending = ref('')
+
+const myId = computed(() => {
+  const client = useNuxtApp().$pb as { authStore?: { model?: { id?: string } } }
+  return client?.authStore?.model?.id || ''
+})
+
+function commentsFor(sessionId: string) {
+  return store.commentsBySession[sessionId] || []
+}
+
+function commentAuthor(comment: { author: string }) {
+  return comment.author === myId.value ? 'Вы' : 'Тренер'
+}
+
+function formatDateTime(value: string) {
+  const d = new Date(value)
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+async function send(sessionId: string) {
+  const text = (drafts[sessionId] || '').trim()
+  if (!text || sending.value) return
+  sending.value = sessionId
+  try {
+    await store.addComment(sessionId, text)
+    drafts[sessionId] = ''
+  } finally {
+    sending.value = ''
+  }
+}
 
 function exerciseName(exerciseId: string) {
   return exercises.value.find((e) => e.id === exerciseId)?.name || 'Упражнение'
@@ -169,6 +240,7 @@ async function load() {
   await store.fetchExercises(dayId.value)
   const list = await store.fetchSessions(dayId.value)
   await store.fetchEntriesForSessions(list.map((s) => s.id))
+  await store.fetchComments(list.map((s) => s.id))
   loading.value = false
 }
 
