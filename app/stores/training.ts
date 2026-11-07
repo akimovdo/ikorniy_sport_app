@@ -46,6 +46,26 @@ export interface ClientProgram {
   active?: boolean
 }
 
+export interface ProgramDay {
+  id: string
+  client: string
+  title: string
+  source_day?: string
+  active?: boolean
+}
+
+export interface ProgramItem {
+  id: string
+  program_day: string
+  name: string
+  sets_count?: number | null
+  target_reps?: number | null
+  weight?: number | null
+  rest_seconds?: number | null
+  sort_order?: number | null
+  note?: string
+}
+
 export interface SessionComment {
   id: string
   session: string
@@ -71,6 +91,9 @@ export const useTrainingStore = defineStore('training', {
     myProgramDayIds: [] as string[],
     commentsBySession: {} as Record<string, SessionComment[]>,
     sessionsByClient: {} as Record<string, SessionRecord[]>,
+    programDaysByClient: {} as Record<string, ProgramDay[]>,
+    itemsByDay: {} as Record<string, ProgramItem[]>,
+    myProgramDays: [] as ProgramDay[],
     unreadBySession: {} as Record<string, number>,
     unreadByClient: {} as Record<string, number>,
     unreadTotal: 0,
@@ -377,6 +400,120 @@ export const useTrainingStore = defineStore('training', {
         this.unreadBySession = rest
         this.unreadTotal = Object.values(rest).reduce((sum, n) => sum + n, 0)
       }
+    },
+
+    // Назначенные программы: при назначении шаблона создаётся снимок,
+    // поэтому правка шаблона не меняет уже выданное клиенту.
+    async fetchClientProgramDays(clientId: string) {
+      const list = await pb().collection('client_program_days').getFullList<ProgramDay>({
+        filter: `client = "${clientId}"`,
+        sort: 'created'
+      })
+      this.programDaysByClient[clientId] = list
+      await this.fetchProgramItems(list.map((d) => d.id))
+      return list
+    },
+
+    async fetchProgramItems(dayIds: string[]) {
+      if (!dayIds.length) return
+      const filter = dayIds.map((id) => `program_day = "${id}"`).join(' || ')
+      const list = await pb().collection('client_program_items').getFullList<ProgramItem>({
+        filter,
+        sort: 'sort_order,name'
+      })
+      const grouped: Record<string, ProgramItem[]> = {}
+      for (const item of list) {
+        if (!grouped[item.program_day]) grouped[item.program_day] = []
+        grouped[item.program_day].push(item)
+      }
+      Object.assign(this.itemsByDay, grouped)
+    },
+
+    async assignTemplate(clientId: string, dayId: string) {
+      const template = this.days.find((d) => d.id === dayId)
+      const title = template?.name || 'Программа'
+      const programDay = await pb().collection('client_program_days').create<ProgramDay>({
+        client: clientId,
+        title,
+        source_day: dayId,
+        active: true
+      })
+      const exercises = await pb().collection('exercises').getFullList<Exercise>({
+        filter: `training_day = "${dayId}"`,
+        sort: 'sort_order,name'
+      })
+      const items: ProgramItem[] = []
+      for (const exercise of exercises) {
+        const item = await pb().collection('client_program_items').create<ProgramItem>({
+          program_day: programDay.id,
+          name: exercise.name,
+          sets_count: exercise.sets_count || 4,
+          rest_seconds: exercise.default_rest || 90,
+          sort_order: exercise.sort_order || 0
+        })
+        items.push(item)
+      }
+      this.programDaysByClient[clientId] = [...(this.programDaysByClient[clientId] || []), programDay]
+      this.itemsByDay[programDay.id] = items
+      return programDay
+    },
+
+    async removeProgramDay(clientId: string, programDayId: string) {
+      await pb().collection('client_program_days').delete(programDayId)
+      this.programDaysByClient[clientId] = (this.programDaysByClient[clientId] || []).filter(
+        (d) => d.id !== programDayId
+      )
+      delete this.itemsByDay[programDayId]
+    },
+
+    async addProgramItem(programDayId: string, payload: Partial<ProgramItem>) {
+      const existing = this.itemsByDay[programDayId] || []
+      const sortOrder = existing.length
+        ? Math.max(...existing.map((i) => i.sort_order || 0)) + 1
+        : 1
+      const record = await pb().collection('client_program_items').create<ProgramItem>({
+        program_day: programDayId,
+        name: payload.name || 'Упражнение',
+        sets_count: payload.sets_count ?? 4,
+        target_reps: payload.target_reps ?? null,
+        weight: payload.weight ?? null,
+        rest_seconds: payload.rest_seconds ?? 90,
+        sort_order: sortOrder
+      })
+      this.itemsByDay[programDayId] = [...existing, record]
+      return record
+    },
+
+    async updateProgramItem(itemId: string, programDayId: string, patch: Partial<ProgramItem>) {
+      const updated = await pb()
+        .collection('client_program_items')
+        .update<ProgramItem>(itemId, patch)
+      this.itemsByDay[programDayId] = (this.itemsByDay[programDayId] || []).map((item) =>
+        item.id === itemId ? updated : item
+      )
+      return updated
+    },
+
+    async deleteProgramItem(itemId: string, programDayId: string) {
+      await pb().collection('client_program_items').delete(itemId)
+      this.itemsByDay[programDayId] = (this.itemsByDay[programDayId] || []).filter(
+        (item) => item.id !== itemId
+      )
+    },
+
+    async fetchMyProgramDays() {
+      const userId = pb().authStore.model?.id
+      if (!userId) {
+        this.myProgramDays = []
+        return []
+      }
+      const list = await pb().collection('client_program_days').getFullList<ProgramDay>({
+        filter: `client = "${userId}"`,
+        sort: 'created'
+      })
+      this.myProgramDays = list
+      await this.fetchProgramItems(list.map((d) => d.id))
+      return list
     },
 
     async setClientProgram(clientId: string, dayId: string, assigned: boolean) {

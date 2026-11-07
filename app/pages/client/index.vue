@@ -52,7 +52,7 @@
         <v-card :to="`/client/day/${day.id}`" class="pa-4" elevation="2">
           <div class="d-flex align-center justify-space-between">
             <div>
-              <div class="text-subtitle-1 font-weight-medium">{{ day.name }}</div>
+              <div class="text-subtitle-1 font-weight-medium">{{ day.title }}</div>
               <div class="text-caption text-medium-emphasis">
                 Открыть и отметить тренировку
               </div>
@@ -79,13 +79,15 @@ definePageMeta({ title: 'Мои тренировки' })
 
 const store = useTrainingStore()
 
-// Клиент видит только комплексы, назначенные ему тренером.
+// Клиент видит только назначенные ему программы (снимок на момент назначения).
 const visibleDays = computed(() =>
-  store.days.filter((day) => store.myProgramDayIds.includes(day.id))
+  store.myProgramDays
+    .filter((program) => !!program.source_day)
+    .map((program) => ({ id: program.source_day as string, title: program.title }))
 )
 
 onMounted(async () => {
   await store.fetchDays()
-  await store.fetchMyProgram()
+  await store.fetchMyProgramDays()
 })
 </script>

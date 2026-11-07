@@ -8,19 +8,20 @@
     </div>
 
     <v-card class="pa-4 mb-4" variant="tonal">
-      <div class="text-subtitle-2 font-weight-medium mb-2">Упражнения комплекса</div>
-      <v-chip
-        v-for="ex in exercises"
-        :key="ex.id"
-        class="mr-2 mb-2"
-        variant="flat"
-        color="secondary"
-        size="small"
+      <div class="text-subtitle-2 font-weight-medium mb-2">План от тренера</div>
+      <div
+        v-for="item in planItems"
+        :key="item.id"
+        class="d-flex align-center justify-space-between ga-2 mb-1"
       >
-        {{ ex.name }}
-      </v-chip>
-      <div v-if="!exercises.length" class="text-caption text-medium-emphasis">
-        Упражнения ещё не добавлены
+        <span class="text-body-2">{{ item.name }}</span>
+        <span class="text-caption text-medium-emphasis">
+          {{ item.sets_count ?? '—' }} × {{ item.target_reps ?? '—' }}
+          <template v-if="item.weight"> · {{ item.weight }} кг</template>
+        </span>
+      </div>
+      <div v-if="!planItems.length" class="text-caption text-medium-emphasis">
+        Тренер ещё не задал упражнения
       </div>
     </v-card>
 
@@ -165,6 +166,21 @@ const day = computed(() => store.dayById(dayId.value))
 const exercises = computed(() => store.exercisesByDay[dayId.value] || [])
 const sessions = computed(() => store.sessionsByDay[dayId.value] || [])
 
+// План берём из назначенной программы (снимок), а не из шаблона:
+// правка шаблона не должна менять уже выданные тренировки.
+const planItems = computed(() => {
+  const program = store.myProgramDays.find((p) => p.source_day === dayId.value)
+  const items = program ? store.itemsByDay[program.id] || [] : []
+  if (items.length) return items
+  return exercises.value.map((ex) => ({
+    id: ex.id,
+    name: ex.name,
+    sets_count: ex.sets_count,
+    target_reps: null,
+    weight: null
+  }))
+})
+
 const drafts = reactive<Record<string, string>>({})
 const sending = ref('')
 const openPanels = ref<string[]>([])
@@ -243,6 +259,7 @@ async function removeSession(sessionId: string) {
 async function load() {
   loading.value = true
   if (!store.days.length) await store.fetchDays()
+  if (!store.myProgramDays.length) await store.fetchMyProgramDays()
   await store.fetchExercises(dayId.value)
   const list = await store.fetchSessions(dayId.value)
   await store.fetchEntriesForSessions(list.map((s) => s.id))
