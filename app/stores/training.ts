@@ -71,6 +71,9 @@ export const useTrainingStore = defineStore('training', {
     myProgramDayIds: [] as string[],
     commentsBySession: {} as Record<string, SessionComment[]>,
     sessionsByClient: {} as Record<string, SessionRecord[]>,
+    unreadBySession: {} as Record<string, number>,
+    unreadByClient: {} as Record<string, number>,
+    unreadTotal: 0,
     clients: [] as CoachClient[],
     programsByClient: {} as Record<string, ClientProgram[]>,
     exercisesByDay: {} as Record<string, Exercise[]>,
@@ -301,6 +304,79 @@ export const useTrainingStore = defineStore('training', {
       })
       this.commentsBySession[sessionId] = [...(this.commentsBySession[sessionId] || []), record]
       return record
+    },
+
+    // Счётчики непрочитанного: считаем чужие сообщения после отметки о прочтении.
+    async fetchUnread() {
+      const model = pb().authStore.model as { id?: string; role?: string } | null
+      const me = model?.id || ''
+      if (!me) {
+        this.unreadBySession = {}
+        this.unreadByClient = {}
+        this.unreadTotal = 0
+        return
+      }
+      const isCoach = model?.role === 'coach'
+      const sessions = await pb().collection('sessions').getFullList<SessionRecord>({
+        filter: isCoach ? '' : `user = "${me}"`,
+        sort: '-date'
+      })
+      const ids = sessions.map((s) => s.id)
+      const counts: Record<string, number> = {}
+      if (ids.length) {
+        const filter = ids.map((id) => `session = "${id}"`).join(' || ')
+        const comments = await pb()
+          .collection('session_comments')
+          .getFullList<SessionComment>({ filter, sort: 'created' })
+        const reads = await pb().collection('session_reads').getFullList<{
+          id: string
+          session: string
+          last_read_at: string
+        }>({ filter: `user = "${me}"` })
+        const lastRead: Record<string, string> = {}
+        for (const read of reads) lastRead[read.session] = read.last_read_at
+        for (const comment of comments) {
+          if (comment.author === me) continue
+          const seen = lastRead[comment.session]
+          if (!seen || comment.created > seen) {
+            counts[comment.session] = (counts[comment.session] || 0) + 1
+          }
+        }
+      }
+      this.unreadBySession = counts
+      const byClient: Record<string, number> = {}
+      if (isCoach) {
+        for (const session of sessions) {
+          const n = counts[session.id] || 0
+          if (n) byClient[session.user] = (byClient[session.user] || 0) + n
+        }
+      }
+      this.unreadByClient = byClient
+      this.unreadTotal = Object.values(counts).reduce((sum, n) => sum + n, 0)
+    },
+
+    async markSessionRead(sessionId: string) {
+      const me = pb().authStore.model?.id
+      if (!me || !sessionId) return
+      const stamp = new Date().toISOString().replace('T', ' ')
+      const existing = await pb()
+        .collection('session_reads')
+        .getFullList<{ id: string }>({
+          filter: `user = "${me}" && session = "${sessionId}"`
+        })
+      if (existing.length) {
+        await pb().collection('session_reads').update(existing[0].id, { last_read_at: stamp })
+      } else {
+        await pb()
+          .collection('session_reads')
+          .create({ user: me, session: sessionId, last_read_at: stamp })
+      }
+      if (this.unreadBySession[sessionId]) {
+        const rest = { ...this.unreadBySession }
+        delete rest[sessionId]
+        this.unreadBySession = rest
+        this.unreadTotal = Object.values(rest).reduce((sum, n) => sum + n, 0)
+      }
     },
 
     async setClientProgram(clientId: string, dayId: string, assigned: boolean) {

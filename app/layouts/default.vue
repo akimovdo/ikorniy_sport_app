@@ -11,6 +11,18 @@
         {{ title }}
       </v-toolbar-title>
 
+      <v-btn
+        v-if="auth.isAuthenticated && unreadTotal > 0"
+        :icon="true"
+        variant="text"
+        :to="homePath"
+        :aria-label="`Непрочитанных сообщений: ${unreadTotal}`"
+      >
+        <v-badge :content="unreadTotal" color="error">
+          <v-icon icon="mdi-bell-outline" />
+        </v-badge>
+      </v-btn>
+
       <v-menu v-if="auth.isAuthenticated" location="bottom end">
         <template #activator="{ props }">
           <v-btn
@@ -59,10 +71,18 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
+import { useTrainingStore } from '~/stores/training'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const training = useTrainingStore()
+
+const unreadTotal = computed(() => training.unreadTotal)
+
+onMounted(() => {
+  if (auth.isAuthenticated) training.fetchUnread().catch(() => {})
+})
 
 const confirmLogout = ref(false)
 

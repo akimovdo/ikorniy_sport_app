@@ -33,6 +33,12 @@
                 {{ client.email }}
               </div>
             </div>
+            <v-badge
+              v-if="unreadFor(client.id)"
+              :content="unreadFor(client.id)"
+              color="error"
+              class="mr-1"
+            />
             <v-chip size="small" variant="tonal" color="primary">
               {{ countFor(client.id) }}
             </v-chip>
@@ -62,9 +68,14 @@ function countFor(clientId: string) {
   return (store.programsByClient[clientId] || []).length
 }
 
+function unreadFor(clientId: string) {
+  return store.unreadByClient[clientId] || 0
+}
+
 async function load() {
   await store.fetchClients()
   await Promise.all(store.clients.map((c) => store.fetchClientPrograms(c.id)))
+  await store.fetchUnread().catch(() => {})
 }
 
 onMounted(load)

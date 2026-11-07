@@ -41,8 +41,8 @@
 
     <v-progress-linear v-if="loading" indeterminate class="mb-4" />
 
-    <v-expansion-panels v-if="sessions.length" variant="accordion" class="mb-4">
-      <v-expansion-panel v-for="session in sessions" :key="session.id">
+    <v-expansion-panels v-if="sessions.length" v-model="openPanels" variant="accordion" multiple class="mb-4">
+      <v-expansion-panel v-for="session in sessions" :key="session.id" :value="session.id">
         <v-expansion-panel-title>
           <div class="d-flex align-center justify-space-between" style="width: 100%">
             <span class="font-weight-medium">{{ formatDate(session.date) }}</span>
@@ -167,6 +167,12 @@ const sessions = computed(() => store.sessionsByDay[dayId.value] || [])
 
 const drafts = reactive<Record<string, string>>({})
 const sending = ref('')
+const openPanels = ref<string[]>([])
+
+watch(openPanels, (value, previous) => {
+  const fresh = (value || []).filter((id) => !(previous || []).includes(id))
+  for (const id of fresh) store.markSessionRead(id).catch(() => {})
+})
 
 const myId = computed(() => {
   const client = useNuxtApp().$pb as { authStore?: { model?: { id?: string } } }

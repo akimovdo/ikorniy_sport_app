@@ -188,6 +188,10 @@ onMounted(async () => {
   try {
     const sessions = await store.fetchClientSessions(clientId.value)
     await store.fetchComments(sessions.map((s) => s.id))
+    // Тренер открыл карточку — переписка по этим тренировкам считается прочитанной.
+    for (const session of sessions) {
+      await store.markSessionRead(session.id).catch(() => {})
+    }
   } finally {
     sessionsLoading.value = false
   }
