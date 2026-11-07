@@ -47,8 +47,8 @@
 
     <v-progress-linear v-if="store.loading" indeterminate class="mb-4" />
 
-    <v-row v-if="!store.loading && store.days.length">
-      <v-col v-for="day in store.days" :key="day.id" cols="12">
+    <v-row v-if="!store.loading && visibleDays.length">
+      <v-col v-for="day in visibleDays" :key="day.id" cols="12">
         <v-card :to="`/client/day/${day.id}`" class="pa-4" elevation="2">
           <div class="d-flex align-center justify-space-between">
             <div>
@@ -66,7 +66,7 @@
     <v-card v-else-if="!store.loading" class="pa-6 text-center" variant="tonal">
       <v-icon icon="mdi-dumbbell" size="40" class="mb-2" color="primary" />
       <div class="text-body-2 text-medium-emphasis">
-        Пока нет назначенных тренировок. Обратитесь к тренеру.
+        Тренер пока не назначил вам ни одного комплекса. Как только назначит — он появится здесь.
       </div>
     </v-card>
   </div>
@@ -79,7 +79,13 @@ definePageMeta({ title: 'Мои тренировки' })
 
 const store = useTrainingStore()
 
-onMounted(() => {
-  store.fetchDays()
+// Клиент видит только комплексы, назначенные ему тренером.
+const visibleDays = computed(() =>
+  store.days.filter((day) => store.myProgramDayIds.includes(day.id))
+)
+
+onMounted(async () => {
+  await store.fetchDays()
+  await store.fetchMyProgram()
 })
 </script>

@@ -7,6 +7,14 @@
       </div>
       <div class="d-flex align-center ga-2">
         <v-btn
+          icon="mdi-account-group"
+          size="small"
+          variant="tonal"
+          color="primary"
+          to="/coach/clients"
+          aria-label="Клиенты"
+        />
+        <v-btn
           icon="mdi-human-male-height"
           size="small"
           variant="tonal"
@@ -21,6 +29,19 @@
     <v-alert v-if="store.error" type="error" variant="tonal" class="mb-4">
       {{ store.error }}
     </v-alert>
+
+    <v-card :to="'/coach/clients'" class="pa-4 mb-4" variant="tonal">
+      <div class="d-flex align-center justify-space-between">
+        <div class="d-flex align-center ga-3">
+          <v-icon icon="mdi-account-group" color="primary" />
+          <div>
+            <div class="text-subtitle-2 font-weight-medium">Клиенты</div>
+            <div class="text-caption text-medium-emphasis">Назначить комплексы клиенту</div>
+          </div>
+        </div>
+        <v-icon icon="mdi-chevron-right" color="medium-emphasis" />
+      </div>
+    </v-card>
 
     <v-card :to="'/coach/measurements'" class="pa-4 mb-4" variant="tonal">
       <div class="d-flex align-center justify-space-between">

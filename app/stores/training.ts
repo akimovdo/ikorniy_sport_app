@@ -39,6 +39,19 @@ export interface ExerciseEntry {
   note: string
 }
 
+export interface ClientProgram {
+  id: string
+  client: string
+  training_day: string
+  active?: boolean
+}
+
+export interface CoachClient {
+  id: string
+  name: string
+  email: string
+}
+
 function pb(): PocketBase {
   const nuxtApp = useNuxtApp()
   return nuxtApp.$pb as PocketBase
@@ -47,6 +60,9 @@ function pb(): PocketBase {
 export const useTrainingStore = defineStore('training', {
   state: () => ({
     days: [] as TrainingDay[],
+    myProgramDayIds: [] as string[],
+    clients: [] as CoachClient[],
+    programsByClient: {} as Record<string, ClientProgram[]>,
     exercisesByDay: {} as Record<string, Exercise[]>,
     sessionsByDay: {} as Record<string, SessionRecord[]>,
     entriesBySession: {} as Record<string, ExerciseEntry[]>,
@@ -198,6 +214,66 @@ export const useTrainingStore = defineStore('training', {
       this.days = this.days.filter((d) => d.id !== dayId)
       delete this.exercisesByDay[dayId]
       delete this.sessionsByDay[dayId]
+    },
+
+    // Клиент видит только те комплексы, которые ему назначил тренер.
+    async fetchMyProgram() {
+      const userId = pb().authStore.model?.id
+      if (!userId) {
+        this.myProgramDayIds = []
+        return []
+      }
+      const list = await pb().collection('client_programs').getFullList<ClientProgram>({
+        filter: `client = "${userId}" && active = true`
+      })
+      this.myProgramDayIds = list.map((p) => p.training_day)
+      return list
+    },
+
+    async fetchClients() {
+      this.loading = true
+      this.error = ''
+      try {
+        const users = await pb().collection('users').getFullList<CoachClient>({
+          filter: `role = "client"`,
+          sort: 'name,email'
+        })
+        this.clients = users.map((u) => ({ id: u.id, name: u.name, email: u.email }))
+        return this.clients
+      } catch (e: any) {
+        this.error = e?.message || 'Не удалось загрузить клиентов'
+        return []
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchClientPrograms(clientId: string) {
+      const list = await pb().collection('client_programs').getFullList<ClientProgram>({
+        filter: `client = "${clientId}"`
+      })
+      this.programsByClient[clientId] = list
+      return list
+    },
+
+    async setClientProgram(clientId: string, dayId: string, assigned: boolean) {
+      const current = this.programsByClient[clientId] || []
+      const existing = current.find((p) => p.training_day === dayId)
+      if (assigned && !existing) {
+        const record = await pb().collection('client_programs').create<ClientProgram>({
+          client: clientId,
+          training_day: dayId,
+          active: true
+        })
+        this.programsByClient[clientId] = [...current, record]
+        return record
+      }
+      if (!assigned && existing) {
+        await pb().collection('client_programs').delete(existing.id)
+        this.programsByClient[clientId] = current.filter((p) => p.id !== existing.id)
+        return null
+      }
+      return existing || null
     }
   }
 })
