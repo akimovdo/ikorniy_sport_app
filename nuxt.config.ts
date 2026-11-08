@@ -20,6 +20,15 @@ export default defineNuxtConfig({
 
   css: ['vuetify/styles', '@mdi/font/css/materialdesignicons.css'],
 
+  // SPA: HTML-оболочку нельзя кэшировать надолго, иначе после деплоя
+  // пользователь остаётся на старом бандле (так и случилось 08.11).
+  routeRules: {
+    '/': { headers: { 'cache-control': 'no-cache, no-store, must-revalidate' } },
+    '/login': { headers: { 'cache-control': 'no-cache, no-store, must-revalidate' } },
+    '/client/**': { headers: { 'cache-control': 'no-cache, no-store, must-revalidate' } },
+    '/coach/**': { headers: { 'cache-control': 'no-cache, no-store, must-revalidate' } }
+  },
+
   build: {
     transpile: ['vuetify']
   },
