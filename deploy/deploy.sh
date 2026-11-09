@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 root_dir="/home/denisakimov/docker/ikorniy_sport_app"
-repo_dir="$root_dir/repo"
+repo_dir="${DEPLOY_REPO_DIR:-$root_dir/repo}"
 compose_file="$repo_dir/deploy/compose.prod.yaml"
 project_name="ikorniy_sport_app"
 container_pb="ikorniy_sport_app-pocketbase-1"
